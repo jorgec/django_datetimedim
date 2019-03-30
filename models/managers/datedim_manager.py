@@ -15,6 +15,32 @@ class DateDimQuerySet(models.QuerySet):
     def weekends(self):
         return self.filter(day_of_week__in=[6, 7])
 
+    def year(self, year: int):
+        return self.fetch_range(
+            start=datetime.date(year, 1, 1),
+            end=datetime.date(year, 12, 31),
+        )
+
+    def month(self, month, *, year: int = None):
+        if year:
+            return self.fetch_range(
+                start=datetime.date(year, month, 1),
+                end=datetime.date(year, month, calendar.monthrange(year, month)[1])
+            )
+        return self.filter(month=month)
+
+    def day(self, day: int, *, month: int = None, year: int = None):
+        if month and year:
+            return self.filter(year=year, month=month, day=day)
+        elif month and not year:
+            return self.filter(month=month, day=day)
+        elif not month and year:
+            return self.filter(year=year, day=day)
+        elif not month and not year:
+            return self.filter(day=day)
+        else:
+            return False
+
     def fetch_range(self, *, start: datetime.date, end: datetime.date, inclusive: bool = True,
                     day_of_week_include: List[int] = None, day_of_week_exclude: List[int] = None):
         if inclusive:
@@ -400,17 +426,35 @@ class DateDimManager(models.Manager):
             day_of_week_include=day_of_week_include
         )
 
-    def year(self, *, year: int, safe=False):
-        return self.fetch_range(
-            start=datetime.date(year, 1, 1),
-            end=datetime.date(year, 12, 31), safe=safe
-        )
+    def year(self, year: int):
+        """
 
-    def month(self, *, year: int, month: int, safe=False):
-        return self.fetch_range(
-            start=datetime.date(year, month, 1),
-            end=datetime.date(year, month, calendar.monthrange(year, month)[1]), safe=safe
-        )
+        :param year:
+        :return:
+        """
+        return self.get_queryset().year(year)
+
+    def month(self, month, *, year: int = None):
+        """
+
+        :param month:
+        :param year:
+        :param safe:
+        :return:
+        """
+
+        return self.get_queryset().month(month, year=year)
+
+    def day(self, day: int, *, month: int = None, year: int = None):
+        """
+
+        :param day:
+        :param year:
+        :param month:
+        :param safe:
+        :return:
+        """
+        return self.get_queryset().day(day, month=month, year=year)
 
     def weekdays(self):
         return self.get_queryset().weekdays()

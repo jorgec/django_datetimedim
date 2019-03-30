@@ -98,19 +98,26 @@ DateDim.objects.fetch_range(start=datetime.date, end=datetime.date, day_of_week_
 Note that this will fail if the date range falls on dates not previously created. If you want to be safe, add the `safe=True` parameter.
 - Fetch all date dims in year
 ```python
-DateDim.objects.year(year=2019)
+DateDim.objects.year(2019)
 ```
-- Fetch all date objects in month
+- Fetch all date objects in month of specific year
 ```python
 DateDim.objects.month(year=2019, month=3)
+# method chaining:
+DateDim.objects.year(2019).month(3)
 ```
 - Fetch all date objects in week of a specific date dim
+```python
 day = DateDim.objects.fetch(datetime.date.today())
 DateDim.objects.fetch_range(start=day.first_day_of_week, end=day.last_day_of_week)
+```
 - Chainable querysets
 ```python
-DateDim.objects.year(year=2019).weekdays()
-DateDim.objects.year(year=2019).weekends()
+DateDim.objects.year(2019).weekdays()
+DateDim.objects.year(2019).weekends()
+DateDim.objects.year(2019).month(1).weekdays()
+# ... you get the idea
+
 ```
 
 ### Model object instances

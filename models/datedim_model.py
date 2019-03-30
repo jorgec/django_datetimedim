@@ -45,7 +45,12 @@ class DateDim(models.Model):
 
     Methods:
         as_arrow() -> arrow.arrow.Arrow     : Returns self as an arrow object
-
+        tomorrow() -> DateDim
+        yesterday() -> DateDim
+        next_week() -> DateDim
+        last_week() -> DateDim
+        next_month() -> DateDim
+        last_month() -> DateDim
 
     """
 

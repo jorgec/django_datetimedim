@@ -373,7 +373,25 @@ class DateDimManager(models.Manager):
         return __date
 
     def fetch_range(self, *, start: datetime.date, end: datetime.date, inclusive: bool = True,
-                    day_of_week_include: List[int] = None, day_of_week_exclude: List[int] = None):
+                    day_of_week_include: List[int] = None, day_of_week_exclude: List[int] = None, safe=False):
+        if start >= end:
+            raise ValueError(f"Start date {start} can't be greater than or equal to end date {end}!")
+
+        if safe:
+            try:
+                __start = self.get(date_actual=start)
+            except self.model.DoesNotExist:
+                __start = self.create(year=start.year, month=start.month, day=start.day)
+
+            try:
+                __end = self.get(date_actual=end)
+            except self.model.DoesNotExist:
+                __end = self.create(year=end.year, month=end.month, day=end.day)
+
+            current_datedim = __start
+            while current_datedim.epoch < __end.epoch:
+                current_datedim = current_datedim.tomorrow()
+
         return self.get_queryset().fetch_range(
             start=start,
             end=end,
@@ -382,16 +400,16 @@ class DateDimManager(models.Manager):
             day_of_week_include=day_of_week_include
         )
 
-    def year(self, *, year: int):
+    def year(self, *, year: int, safe=False):
         return self.fetch_range(
             start=datetime.date(year, 1, 1),
-            end=datetime.date(year, 12, 31)
+            end=datetime.date(year, 12, 31), safe=safe
         )
 
-    def month(self, *, year: int, month: int):
+    def month(self, *, year: int, month: int, safe=False):
         return self.fetch_range(
             start=datetime.date(year, month, 1),
-            end=datetime.date(year, month, calendar.monthrange(year, month)[1])
+            end=datetime.date(year, month, calendar.monthrange(year, month)[1]), safe=safe
         )
 
     def weekdays(self):

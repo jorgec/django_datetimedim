@@ -31,7 +31,10 @@ class DateDimQuerySet(models.QuerySet):
 
     def day(self, day: int, *, month: int = None, year: int = None):
         if month and year:
-            return self.filter(year=year, month=month, day=day)
+            try:
+                return self.get(year=year, month=month, day=day)
+            except self.model.DoesNotExist:
+                self.model.objects.fetch(datetime.date(year, month, day))
         elif month and not year:
             return self.filter(month=month, day=day)
         elif not month and year:

@@ -40,7 +40,9 @@ class DateDim(models.Model):
         week_of_year (int)                  :
         year (int)                          :
         year_actual_iso (int)               :
-    
+        nicename_long (str)                 : Tuesday, January 5, 1993
+        nicename_short (str)                : Tue, Jan 5, 1993
+
     Methods:
         as_arrow() -> arrow.arrow.Arrow     : Returns self as an arrow object
 
@@ -50,7 +52,7 @@ class DateDim(models.Model):
     # Fields
     day = models.PositiveSmallIntegerField()
     day_str = models.CharField(max_length=2)
-    date_actual = models.DateField()
+    date_actual = models.DateField(unique=True)
     epoch = models.PositiveIntegerField(unique=True)
     day_name = models.CharField(max_length=9)
     day_abbr = models.CharField(max_length=3)
@@ -79,6 +81,8 @@ class DateDim(models.Model):
     year_actual_iso = models.PositiveSmallIntegerField()
     week_iso = models.PositiveSmallIntegerField()
     week_date_iso = models.PositiveSmallIntegerField()
+    nicename_long = models.CharField(max_length=64)
+    nicename_short = models.CharField(max_length=32)
 
     objects = DateDimManager()
 
@@ -91,3 +95,43 @@ class DateDim(models.Model):
 
     def as_arrow(self):
         return arrow.get(self.date_actual)
+
+    def tomorrow(self):
+        try:
+            return DateDim.objects.get(epoch=self.epoch + 1)
+        except DateDim.DoesNotExist:
+            return DateDim.objects.fetch(self.as_arrow().shift(days=1).date())
+
+    def yesterday(self):
+        try:
+            return DateDim.objects.get(epoch=self.epoch - 1)
+        except DateDim.DoesNotExist:
+            return DateDim.objects.fetch(self.as_arrow().shift(days=-1).date())
+
+    def next_week(self):
+        try:
+            return DateDim.objects.get(epoch=self.epoch + 7)
+        except DateDim.DoesNotExist:
+            return DateDim.objects.fetch(self.as_arrow().shift(days=7).date())
+
+    def last_week(self):
+        try:
+            return DateDim.objects.get(epoch=self.epoch - 7)
+        except DateDim.DoesNotExist:
+            return DateDim.objects.fetch(self.as_arrow().shift(days=-7).date())
+
+    def next_month(self):
+        try:
+            return DateDim.objects.get(
+                date_actual=self.as_arrow().shift(months=1).date()
+            )
+        except DateDim.DoesNotExist:
+            return DateDim.objects.fetch(self.as_arrow().shift(months=1).date())
+
+    def last_month(self):
+        try:
+            return DateDim.objects.get(
+                date_actual=self.as_arrow().shift(months=-1).date()
+            )
+        except DateDim.DoesNotExist:
+            return DateDim.objects.fetch(self.as_arrow().shift(months=-1).date())

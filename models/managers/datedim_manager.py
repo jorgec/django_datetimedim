@@ -2,12 +2,46 @@ import calendar
 import datetime
 from typing import List, Tuple
 
+from dateutil.parser import parse
 from django.db import models
 
 from datetimedim.models.constants import QUARTER_STARTS, QUARTER_NAMES
 
 
+class DateDimQuerySet(models.QuerySet):
+    def weekdays(self):
+        return self.filter(day_of_week__in=[1, 2, 3, 4, 5])
+
+    def weekends(self):
+        return self.filter(day_of_week__in=[6, 7])
+
+    def fetch_range(self, *, start: datetime.date, end: datetime.date, inclusive: bool = True,
+                    day_of_week_include: List[int] = None, day_of_week_exclude: List[int] = None):
+        if inclusive:
+            filters = {
+                "date_actual__gte": start,
+                "date_actual__lte": end
+            }
+        else:
+            filters = {
+                "date_actual__gt": start,
+                "date_actual__lt": end
+            }
+        if day_of_week_include:
+            filters["day_of_week__in"] = day_of_week_include
+
+        custom_filter = self.filter(**filters)
+
+        if day_of_week_exclude:
+            custom_filter = custom_filter.exclude(day_of_week__in=day_of_week_exclude)
+
+        return custom_filter
+
+
 class DateDimManager(models.Manager):
+
+    def get_queryset(self):
+        return DateDimQuerySet(self.model, using=self._db)
 
     @staticmethod
     def get_day_str(day: int) -> str:
@@ -207,7 +241,20 @@ class DateDimManager(models.Manager):
 
     def bootstrap(self, years: List[int], week_starts_on: int = calendar.MONDAY) -> None:
         calendar.setfirstweekday(week_starts_on)
-        for year in range(years[0], years[1] + 1):
+        if len(years) > 1:
+            for year in range(years[0], years[1] + 1):
+                for month in range(1, 13):
+                    num_days = calendar.monthrange(year, month)[1]
+                    for day in range(1, num_days + 1):
+                        d = self.create(
+                            year=year,
+                            month=month,
+                            day=day,
+                            week_starts_on=week_starts_on
+                        )
+                        print(f"Bootstrapping {d}...")
+        else:
+            year = years[0]
             for month in range(1, 13):
                 num_days = calendar.monthrange(year, month)[1]
                 for day in range(1, num_days + 1):
@@ -258,6 +305,8 @@ class DateDimManager(models.Manager):
             last_day_of_year = datetime.date(date_actual.year, 12, 31)
             year_actual_iso, week_iso, week_date_iso = date_actual.isocalendar()
             is_weekend = self.check_is_weekend(date_actual)
+            nicename_long = f'{day_name}, {month_name} {day}, {year}'
+            nicename_short = f'{month_abbr} {day}, {year}'
 
             d = super(DateDimManager, self).create(
                 day=day,
@@ -291,6 +340,62 @@ class DateDimManager(models.Manager):
                 year_actual_iso=year_actual_iso,
                 week_iso=week_iso,
                 week_date_iso=week_date_iso,
+                nicename_long=nicename_long,
+                nicename_short=nicename_short
             )
 
             return d
+
+    def fetch(self, d):
+        if type(d) == str:
+            try:
+                d = parse(d).date()
+            except ValueError as e:
+                return e
+        elif type(d) == datetime.date:
+            pass
+        elif type(d) == datetime.datetime:
+            d = d.date()
+        elif type(d) == self.model:
+            return d
+        else:
+            raise ValueError(f"Invalid format: {d}")
+
+        try:
+            __date = self.get(date_actual=d)
+        except self.model.DoesNotExist:
+            __date = self.create(
+                year=d.year,
+                month=d.month,
+                day=d.day
+            )
+
+        return __date
+
+    def fetch_range(self, *, start: datetime.date, end: datetime.date, inclusive: bool = True,
+                    day_of_week_include: List[int] = None, day_of_week_exclude: List[int] = None):
+        return self.get_queryset().fetch_range(
+            start=start,
+            end=end,
+            inclusive=inclusive,
+            day_of_week_exclude=day_of_week_exclude,
+            day_of_week_include=day_of_week_include
+        )
+
+    def year(self, *, year: int):
+        return self.fetch_range(
+            start=datetime.date(year, 1, 1),
+            end=datetime.date(year, 12, 31)
+        )
+
+    def month(self, *, year: int, month: int):
+        return self.fetch_range(
+            start=datetime.date(year, month, 1),
+            end=datetime.date(year, month, calendar.monthrange(year, month)[1])
+        )
+
+    def weekdays(self):
+        return self.get_queryset().weekdays()
+
+    def weekends(self):
+        return self.get_queryset().weekends()

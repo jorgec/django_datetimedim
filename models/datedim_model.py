@@ -23,7 +23,7 @@ class DateDim(models.Model):
         first_day_of_quarter (datetime.date):
         first_day_of_week (datetime.date)   :
         first_day_of_year (datetime.date)   :
-        is_weekend (datetime.date)          :
+        is_weekend (bool)                   :
         last_day_of_month (datetime.date)   :
         last_day_of_quarter (datetime.date) :
         last_day_of_week (datetime.date)    :

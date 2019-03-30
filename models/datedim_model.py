@@ -92,40 +92,64 @@ class DateDim(models.Model):
     objects = DateDimManager()
 
     class Meta:
-        ordering = ('-date_actual',)
+        ordering = ('date_actual',)
         unique_together = ('day', 'month', 'year')
 
     def __str__(self):
         return self.date_actual.isoformat()
 
     def as_arrow(self):
+        """
+
+        :return:
+        """
         return arrow.get(self.date_actual)
 
     def tomorrow(self):
+        """
+
+        :return:
+        """
         try:
             return DateDim.objects.get(epoch=self.epoch + 1)
         except DateDim.DoesNotExist:
             return DateDim.objects.fetch(self.as_arrow().shift(days=1).date())
 
     def yesterday(self):
+        """
+
+        :return:
+        """
         try:
             return DateDim.objects.get(epoch=self.epoch - 1)
         except DateDim.DoesNotExist:
             return DateDim.objects.fetch(self.as_arrow().shift(days=-1).date())
 
     def next_week(self):
+        """
+
+        :return:
+        """
         try:
             return DateDim.objects.get(epoch=self.epoch + 7)
         except DateDim.DoesNotExist:
             return DateDim.objects.fetch(self.as_arrow().shift(days=7).date())
 
     def last_week(self):
+        """
+
+        :return:
+        """
         try:
             return DateDim.objects.get(epoch=self.epoch - 7)
         except DateDim.DoesNotExist:
             return DateDim.objects.fetch(self.as_arrow().shift(days=-7).date())
 
     def next_month(self):
+        """
+
+        :return:
+        """
         try:
             return DateDim.objects.get(
                 date_actual=self.as_arrow().shift(months=1).date()
@@ -134,6 +158,10 @@ class DateDim(models.Model):
             return DateDim.objects.fetch(self.as_arrow().shift(months=1).date())
 
     def last_month(self):
+        """
+
+        :return:
+        """
         try:
             return DateDim.objects.get(
                 date_actual=self.as_arrow().shift(months=-1).date()

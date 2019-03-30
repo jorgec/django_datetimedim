@@ -2,6 +2,23 @@
 
 Django DateTimeDimesion is a droppable Django app for dealing with dates and times as dimension tables.
 
+## Status: 0.0.3
+TODO:
+- Date Dimension
+    - [ ] Overload + and - operators
+    - [ ] Seasons
+    - [ ] Fiscal schedules
+    - [ ] Performance tuneups for range selections
+- Time Dimension
+    - [ ] Model
+        - [ ] Define methods
+    - [ ] Manager
+        - [ ] Define methods
+    - [ ] Sunrise/sunset
+    - [ ] Time of day descriptors
+    - [ ] Overload + and - operators
+    - [ ] How to handle past-midnight effects (don't?)
+
 ```pydocstring
 Fields:
         date_actual (datetime.date)         : Actual date object

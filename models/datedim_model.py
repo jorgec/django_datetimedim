@@ -1,5 +1,4 @@
 import arrow
-
 from django.db import models
 
 from datetimedim.models.managers import DateDimManager
@@ -8,6 +7,44 @@ from datetimedim.models.managers import DateDimManager
 class DateDim(models.Model):
     """
     The Date Dimension
+
+    Fields:
+        date_actual (datetime.date)         : Actual date object
+        day (int)                           :
+        day_abbr (str)                      :
+        day_name (str)                      :
+        day_of_month (int)                  :
+        day_of_quarter (int)                :
+        day_of_week (int)                   :
+        day_of_year (int)                   :
+        day_str (str)                       : Zero-padded day number
+        epoch (int)                         : Number of days since January 1, 0001
+        first_day_of_month (datetime.date)  :
+        first_day_of_quarter (datetime.date):
+        first_day_of_week (datetime.date)   :
+        first_day_of_year (datetime.date)   :
+        is_weekend (datetime.date)          :
+        last_day_of_month (datetime.date)   :
+        last_day_of_quarter (datetime.date) :
+        last_day_of_week (datetime.date)    :
+        last_day_of_year (datetime.date)    :
+        month (int)                         :
+        month_abbr (str)                    :
+        month_name (str)                    :
+        month_str (str)                     : Zero-padded month number
+        quarter (int)                       :
+        quarter_name (str)                  :
+        week_date_iso (int)                 :
+        week_iso (int)                      :
+        week_of_month (int)                 :
+        week_of_year (int)                  :
+        year (int)                          :
+        year_actual_iso (int)               :
+    
+    Methods:
+        as_arrow() -> arrow.arrow.Arrow     : Returns self as an arrow object
+
+
     """
 
     # Fields
@@ -40,10 +77,8 @@ class DateDim(models.Model):
     last_day_of_year = models.DateField()
     is_weekend = models.BooleanField(default=False)
     year_actual_iso = models.PositiveSmallIntegerField()
-    week_iso = models.CharField(max_length=10)
-    week_date_iso = models.CharField(max_length=12)
-    ordinal_iso = models.CharField(max_length=8)
-
+    week_iso = models.PositiveSmallIntegerField()
+    week_date_iso = models.PositiveSmallIntegerField()
 
     objects = DateDimManager()
 

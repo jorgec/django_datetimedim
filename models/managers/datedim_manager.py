@@ -168,7 +168,7 @@ class DateDimManager(models.Manager):
         :param d:
         :return:
         """
-        return (d.toordinal() - datetime.date(d.year, 1, 1).toordinal()) + 1
+        return int(d.strftime("%j"))
 
     @staticmethod
     def get_month_str(d: datetime.date) -> str:
@@ -197,7 +197,7 @@ class DateDimManager(models.Manager):
             i += 1
 
     def get_week_of_month(self, d: datetime.date, week_starts_on: int = calendar.MONDAY) -> int:
-        return self.get_week(d)[1]
+        return self.get_week(d, week_starts_on=week_starts_on)[1]
 
     @staticmethod
     def get_quarter_name(quarter: int):
@@ -260,7 +260,7 @@ class DateDimManager(models.Manager):
         """
 
         try:
-            return self.model.objects.get(
+            return self.get(
                 year=year,
                 month=month,
                 day=day

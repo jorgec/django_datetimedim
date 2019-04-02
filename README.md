@@ -5,21 +5,21 @@ Django DateTimeDimesion is a droppable Django app for dealing with dates and tim
 ## Status: 0.0.3
 TODO:
 - Date Dimension
-    - [ ] Overload + and - operators
+    - [x] Overload +, -, /, //, >, >=, <, <= operators
     - [ ] Seasons
     - [ ] Fiscal schedules
     - [ ] Performance tuneups for range selections
 - Time Dimension
-    - [ ] Model
-        - [ ] Define methods
-    - [ ] Manager
-        - [ ] Define methods
+    - [x] Model
+        - [x] Define methods
+        - [x] Overload +, -, >, >=, <, <= operators
+    - [x] Manager
+        - [x] Define methods
     - [ ] Sunrise/sunset
     - [ ] Time of day descriptors
-    - [ ] Overload + and - operators
-    - [ ] How to handle past-midnight effects (don't?)
 
 ```pydocstring
+DateDim object
 Fields:
         date_actual (datetime.date)         : Actual date object
         day (int)                           :
@@ -56,13 +56,51 @@ Fields:
         nicename_short (str)                : Tue, Jan 5, 1993
 
     Methods:
-        as_arrow() -> arrow.arrow.Arrow     : Returns self as an arrow object
-        tomorrow() -> DateDim
-        yesterday() -> DateDim
-        next_week() -> DateDim
-        last_week() -> DateDim
-        next_month() -> DateDim
-        last_month() -> DateDim
+        __str__() -> str                                : Returns isoformat
+        as_arrow() -> arrow.arrow.Arrow                 : Returns self as an arrow object
+        tomorrow() -> DateDim                           :
+        yesterday() -> DateDim                          :
+        next_week() -> DateDim                          :
+        last_week() -> DateDim                          :
+        next_month() -> DateDim                         :
+        last_month() -> DateDim                         :
+        is_between(earlier, later, inclusive) -> bool   : Returns true if self is between earlier and later
+    
+    Overloaded operators:
+        DateDim > DateDim                               : Greater Than -> bool
+        DateDim >= DateDim                              : Greater Than or Equal To -> bool
+        DateDim < DateDim                               : Less Than -> bool
+        DateDim <= DateDim                              : Less Than or Equal To -> bool
+        DateDim + int                                   : DateDim plus days -> DateDim
+        DateDim - int                                   : DateDim minus days -> DateDim
+        DateDim / int                                   : DateDim divided by int segments -> List[TimeDim] (inclusive)
+        DateDim // int                                  : DateDim divided by int segments -> List[TimeDim] (exclusive)
+
+TimeDim object
+    Fields:
+        time_actual (datetime.time)                     :
+        hour (int)                                      :
+        hour_str (str)                                  :
+        hour_12 (int)                                   :
+        hour_12_str (str)                               :
+        minute (int)                                    :
+        minute_str (str)                                :
+        minute_of_day (int)                             : Minutes since midnight
+        am_pm (str)                                     : AM or PM
+
+    Methods:
+        __str__() -> str                                : Returns HH:MM P (military time)
+        as_12() -> str                                  : Returns HH:MM P (12-hour time)
+        tz_aware(date, tz=UTC) -> datetime              : Returns a timezone aware datetime object
+        is_between(earlier, later, inclusive) -> bool   : Returns true if self is between earlier and later
+        
+    Overloaded operators:
+        TimeDim > TimeDim                               : Greater Than -> bool
+        TimeDim >= TimeDim                              : Greater Than or Equal To -> bool
+        TimeDim < TimeDim                               : Less Than -> bool
+        TimeDim <= TimeDim                              : Less Than or Equal To -> bool
+        TimeDim + int                                   : TimeDim plus days -> TimeDim
+        TimeDim - int                                   : TimeDim minus days -> TimeDim
 ```
 
 ## Installation
@@ -149,6 +187,12 @@ d.next_month()
 d.last_month()
 d.next_week().last_month().tomorrow().last_week().yesterday() # Don't do this
 
+d + 1 # same as d.tomorrow()
+d + 1 + 1 # same as d.tomorrow().tomorrow()
+d - 1 # same as d.yesterday()
+
+d / 12 # splits d into 12 TimeDims, inclusive (ex: 0:00 to 1:00, 1:00 to 2:00...)
+d // 12 # splits d into 12 TimeDims, exclusive (ex: 0:00 to 0:59, 1:00 to 1:59...)
 ```
 
 ## Contributing

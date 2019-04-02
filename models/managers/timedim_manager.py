@@ -1,29 +1,62 @@
 import datetime
 
 import pytz
+from dateutil.parser import parse
 from django.db import models
 
 
 class TimeDimQuerySet(models.QuerySet):
     def morning(self, tz='utc'):
-        noon = datetime.time(12, 0).replace(tzinfo=pytz.timezone(tz))
+        if tz:
+            noon = datetime.time(12, 0).replace(tzinfo=pytz.timezone(tz))
+        else:
+            noon = datetime.time(12, 9)
         return self.filter(
             time_actual__lt=noon,
         )
 
     def afternoon(self, tz='utc'):
-        noon = datetime.time(12, 0).replace(tzinfo=pytz.timezone(tz))
-        evening = datetime.time(18, 0).replace(tzinfo=pytz.timezone(tz))
+        if tz:
+            noon = datetime.time(12, 0).replace(tzinfo=pytz.timezone(tz))
+            evening = datetime.time(18, 0).replace(tzinfo=pytz.timezone(tz))
+        else:
+            noon = datetime.time(12, 0)
+            evening = datetime.time(18, 0)
         return self.filter(
             time_actual__gt=noon,
             time_actual__lt=evening
         )
 
     def evening(self, tz='utc'):
-        evening = datetime.time(18, 0).replace(tzinfo=pytz.timezone(tz))
+        if tz:
+            evening = datetime.time(18, 0).replace(tzinfo=pytz.timezone(tz))
+        else:
+            evening = datetime.time(18, 0)
         return self.filter(
             time_actual__gte=evening
         )
+
+    def fetch_range(self, *,
+                    start: datetime.time,
+                    end: datetime.time,
+                    inclusive: bool = True,
+                    tz: str = None):
+        if tz:
+            start = start.replace(tzinfo=pytz.timezone(tz))
+            end = end.replace(tzinfo=pytz.timezone(tz))
+
+        if inclusive:
+            filters = {
+                "time_actual__gte": start,
+                "time__actual__lte": end
+            }
+        else:
+            filters = {
+                "time_actual__gt": start,
+                "time__actual__lt": end
+            }
+
+        return self.filter(**filters)
 
 
 class TimeDimManager(models.Manager):
@@ -115,3 +148,64 @@ class TimeDimManager(models.Manager):
             for m in range(0, 60):
                 t = self.create(h=h, m=m)
                 print(f"Bootstrapping {t}")
+
+    def fetch(self, t, *, tz=None):
+        """
+        Fetch TimeDim object based on t, which can be:
+        - str: parsable by dateutil.parser
+        - datetime.datetime object
+        - TimeDim object
+        - int: number of minutes since midnight
+        :param tz:
+        :param t:
+        :return: TimeDim
+        """
+
+        if isinstance(t, str):
+            t = parse(t).time()
+        elif isinstance(t, datetime.time):
+            pass
+        elif isinstance(t, datetime.datetime):
+            t = t.time()
+        elif isinstance(t, self.model):
+            return t
+        elif isinstance(t, int):
+            if t > 1440 or t < 0:
+                t = t % 1440
+
+            h = t // 60
+            m = t % 60
+            t = datetime.time(h, m)
+        else:
+            raise ValueError(f"Unknown input: {t}")
+
+        if tz:
+            t = t.replace(tzinfo=pytz.timezone(tz))
+
+        try:
+            __time = self.get(hour=t.hour, minute=t.minute)
+        except self.model.DoesNotExist:
+            raise ValueError(f"Invalid time: {t}, {type({t})}")
+
+        return __time
+
+    def fetch_range(self, *,
+                    start: datetime.time,
+                    end: datetime.time,
+                    inclusive: bool = True,
+                    tz: str = None):
+        """
+        Fetch a range of times between start and end
+        :param tz:
+        :param start:
+        :param end:
+        :param inclusive:
+        :return:
+        """
+
+        return self.get_queryset().fetch_range(
+            start=start,
+            end=end,
+            inclusive=inclusive,
+            tz=tz
+        )

@@ -376,17 +376,29 @@ class DateDimManager(models.Manager):
             return d
 
     def fetch(self, d):
-        if type(d) == str:
+        """
+        Fetch DateDim object based on d, which can be:
+        - str: parsable by dateutil.parser
+        - datetime.date object
+        - datetime.datetime object
+        - DateDim object
+        - int: number of days since Jan 1, 0001
+        :param d:
+        :return: DateDim
+        """
+        if isinstance(d, str):
             try:
                 d = parse(d).date()
             except ValueError as e:
                 return e
-        elif type(d) == datetime.date:
+        elif isinstance(d, datetime.date):
             pass
-        elif type(d) == datetime.datetime:
+        elif isinstance(d, datetime.datetime):
             d = d.date()
-        elif type(d) == self.model:
+        elif isinstance(d, self.model):
             return d
+        elif isinstance(d, int):
+            d = datetime.date.fromordinal(d)
         else:
             raise ValueError(f"Invalid format: {d}")
 
@@ -403,6 +415,16 @@ class DateDimManager(models.Manager):
 
     def fetch_range(self, *, start: datetime.date, end: datetime.date, inclusive: bool = True,
                     day_of_week_include: List[int] = None, day_of_week_exclude: List[int] = None, safe=False):
+        """
+        Fetch a range of DateDims from start to end
+        :param start:
+        :param end:
+        :param inclusive:
+        :param day_of_week_include:
+        :param day_of_week_exclude:
+        :param safe:
+        :return:
+        """
         if start >= end:
             raise ValueError(f"Start date {start} can't be greater than or equal to end date {end}!")
 

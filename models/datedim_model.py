@@ -1,4 +1,5 @@
 import arrow
+from django.apps import apps
 from django.db import models
 
 from datetimedim.models.managers import DateDimManager
@@ -98,6 +99,86 @@ class DateDim(models.Model):
     def __str__(self):
         return self.date_actual.isoformat()
 
+    def __sub__(self, days: int):
+        """
+        Subtracts days from DateDim, returns another DateDim
+        :param days:
+        :return:
+        """
+        return DateDim.objects.fetch(self.epoch - days)
+
+    def __add__(self, days: int):
+        """
+        Adds days to DateDim, returns another DateDim
+        :param days:
+        :return:
+        """
+        return DateDim.objects.fetch(self.epoch + days)
+
+    def __truediv__(self, sections: int):
+        """
+        Returns a list of QuerySets of TimeDim blocks divided by <sections>, inclusive
+        :param sections:
+        :return:
+        """
+        TimeDim = apps.get_model('datetimedim.TimeDim')
+        span = 1440 // sections
+        parts = [(i, i + span) for i in range(0, 1440, span)]
+        divs = []
+        for part in parts:
+            divs.append(
+                TimeDim.objects.filter(minute_of_day__gte=part[0], minute_of_day__lte=part[1]),
+            )
+        return divs
+
+    def __floordiv__(self, sections: int):
+        """
+        Returns a list of QuerySets of TimeDim blocks divided by <sections>, exclusive
+        :param sections:
+        :return:
+        """
+        TimeDim = apps.get_model('datetimedim.TimeDim')
+        span = 1440 // sections
+        parts = [(i, i + span) for i in range(0, 1440, span)]
+        divs = []
+        for part in parts:
+            divs.append(
+                TimeDim.objects.filter(minute_of_day__gte=part[0], minute_of_day__lte=part[1] - 1),
+            )
+        return divs
+
+    def __gt__(self, other):
+        """
+        Checks if self is greater than other DateDim
+        :param other:
+        :return:
+        """
+        return self.epoch > other.epoch
+
+    def __ge__(self, other):
+        """
+        Checks if self is greater than or equal to other DateDim
+        :param other:
+        :return:
+        """
+        return self.epoch >= other.epoch
+
+    def __lt__(self, other):
+        """
+        Checks if self is less than other DateDim
+        :param other:
+        :return:
+        """
+        return self.epoch < other.epoch
+
+    def __le__(self, other):
+        """
+        Checks if self is less than or equal other DateDim
+        :param other:
+        :return:
+        """
+        return self.epoch <= other.epoch
+
     def as_arrow(self):
         """
 
@@ -168,3 +249,15 @@ class DateDim(models.Model):
             )
         except DateDim.DoesNotExist:
             return DateDim.objects.fetch(self.as_arrow().shift(months=-1).date())
+
+    def is_between(self, earlier, later, inclusive: bool = True) -> bool:
+        """
+        Checks if self is between earlier: DateDim and later: DateDim
+        :param inclusive: bool
+        :param earlier: DateDim
+        :param later: DateDim
+        :return: bool
+        """
+        if inclusive:
+            return earlier <= self <= later
+        return earlier < self < later
